@@ -11,10 +11,14 @@ defmodule AlarmClock.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [
+      applications: [:logger, :calendar]
+    ]
   end
 
   defp deps do
-    []
+    [
+      {:calendar, "~> 0.16.1"}
+    ]
   end
 end

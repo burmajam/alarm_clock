@@ -29,7 +29,6 @@ defmodule AlarmClock do
     {:ok, ms} = Keyword.fetch opts, :in
     Logger.debug "Setting alarm for #{inspect target_pid} in #{inspect ms} miliseconds with message: #{inspect msg}"
     message = {:alarm, call_type, target_pid, msg, opts, 1}
-    Logger.warn inspect message
     {:ok, alarm_id} = state.settings.persister.save_alarm message
     case :timer.send_after ms, {message, alarm_id} do
       {:ok, _} -> {:reply, :ok,   state}
@@ -92,8 +91,15 @@ defmodule AlarmClock do
       |> Enum.each(&recover_alarm/1)
   end
 
-  defp recover_alarm(alarm) do
+  defp recover_alarm({alarm_id, {_,_,_,_,opts,_}=alarm}) do
     Logger.debug "Recovering alarm #{inspect alarm}"
+    case Keyword.fetch!(opts, :in) do
+      {:warn, :expired, ms_ago} -> 
+        Logger.warn "Message expired #{inspect ms_ago} mseconds ago! Delivering it now!"
+        send self, {alarm, alarm_id}
+      ms -> 
+        :timer.send_after ms, {alarm, alarm_id}
+    end
   end
 
   defp ensure_implements(module, behaviour) do

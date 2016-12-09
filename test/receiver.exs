@@ -2,8 +2,8 @@ defmodule Receiver do
   use GenServer
   require Logger
 
-  def start_link(parent_pid), 
-    do: GenServer.start_link __MODULE__, parent_pid
+  def start_link(parent_pid, opts \\ []), 
+    do: GenServer.start_link __MODULE__, parent_pid, opts
 
   def init(parent_pid) do
     Logger.debug "Starting Receiver #{inspect self}"

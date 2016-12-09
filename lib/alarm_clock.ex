@@ -8,20 +8,37 @@ defmodule AlarmClock do
   def init(:ok), 
     do: {:ok, nil}
 
-  def set_alarm(server, target_pid, msg, in: ms),
-    do: GenServer.call server, {:set_alarm, {target_pid, msg, in: ms}}
+  def set_alarm_call(server, target_pid, msg, opts),
+    do: GenServer.call server, {:set_alarm, {:call, target_pid, msg, opts}}
 
 
-  def handle_call({:set_alarm, {target_pid, msg, in: ms}}, _from, state) do
+  def handle_call({:set_alarm, {call_type, target_pid, msg, opts}}, _from, state) do
+    {:ok, ms} = Keyword.fetch opts, :in
     Logger.debug "Setting alarm for #{inspect target_pid} in #{inspect ms} miliseconds with message: #{inspect msg}"
-    case :timer.send_after ms, {:alarm, target_pid, msg} do
+    case :timer.send_after ms, {:alarm, call_type, target_pid, msg, opts} do
       {:ok, _} -> {:reply, :ok,   state}
       error    -> {:reply, error, state}
     end
   end
 
-  def handle_info({:alarm, target_pid, msg}, state) do
-    send target_pid, msg
+  def handle_info({:alarm, :call, target_pid, msg, opts}, state) do
+    timeout = Keyword.get opts, :timeout, 5_000
+    response = try do
+      Logger.debug "Calling #{inspect target_pid} with #{inspect msg}"
+      case GenServer.call(target_pid, msg, timeout) do
+        :ok   -> 
+          Logger.debug "Everything looks ok"
+        other -> 
+          Logger.warn  "Delivery not successful: #{inspect other}"
+          {:error, other}
+      end
+    catch
+      :exit, reason ->
+        Logger.warn "Calling server failed with: #{inspect reason}"
+        {:error, reason}
+    end
     {:noreply, state}
   end
+  def handle_info(_, state), 
+    do: {:noreply, state}
 end

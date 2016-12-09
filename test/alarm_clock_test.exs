@@ -1,19 +1,34 @@
 defmodule AlarmClockTest do
-  use     ExUnit.Case
+  use     ExUnit.Case, async: true
   require Logger
   doctest AlarmClock
 
-  setup do
+  Code.require_file("test/receiver.exs")
+
+
+  setup_all do
     {:ok, alarm_clock} = AlarmClock.start_link
-    {:ok, alarm_clock: alarm_clock}
+    {:ok, receiver}    = Receiver.start_link self
+    {:ok, alarm_clock: alarm_clock, receiver: receiver}
   end
 
-  test "it's alive", ctx, 
+  setup do
+    {:ok, receiver}    = Receiver.start_link self
+    {:ok, receiver: receiver}
+  end
+
+  test "It's alive", ctx, 
     do: assert Process.alive?(ctx.alarm_clock)
 
-  test "it accepts reminders in miliseconds", ctx do
-    Logger.info "it accepts reminders in miliseconds"
-    :ok = AlarmClock.set_alarm ctx.alarm_clock, self, :msg, in: 50
-    assert_receive :msg
+  test "It accepts alarm in miliseconds", ctx do
+    Logger.info "It accepts alarm in miliseconds"
+    :ok = AlarmClock.set_alarm_call ctx.alarm_clock, ctx.receiver, :msg, in: 50
+    assert_receive :msg, 6000
+  end
+
+  test "Timeout for alarm can be set", ctx do
+    Logger.info "Timeout for alarm can be set"
+    :ok = AlarmClock.set_alarm_call ctx.alarm_clock, self, :msg, in: 50, timeout: 500
+    refute_receive :msg, 1000
   end
 end

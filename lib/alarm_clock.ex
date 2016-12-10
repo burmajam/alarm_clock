@@ -26,7 +26,20 @@ defmodule AlarmClock do
   end
 
   def handle_call({:set_alarm, {call_type, target_pid, msg, opts}}, _from, state) do
-    {:ok, ms} = Keyword.fetch opts, :in
+    at = Keyword.get opts, :at
+    {:ok, ms} = if at do
+      case Calendar.DateTime.diff(Calendar.DateTime.now_utc, at) do
+        {:ok, seconds, useconds, :before} ->
+          ms = abs (seconds * 1000) + round(useconds / 1000)
+          Logger.debug "There are #{inspect ms} miliseconds left"
+          {:ok, ms}
+        error ->
+          Logger.error "There's error in calculating time diff: #{inspect error}"
+          {:error, error}
+      end
+    else
+      Keyword.fetch opts, :in
+    end
     Logger.debug "Setting alarm for #{inspect target_pid} in #{inspect ms} miliseconds with message: #{inspect msg}"
     message = {:alarm, call_type, target_pid, msg, opts, 1}
     {:ok, alarm_id} = state.settings.persister.save_alarm message
@@ -45,7 +58,7 @@ defmodule AlarmClock do
       {:error, {:noproc, _}}  -> 
         :timer.send_after settings.retry_delay, {{:alarm, :call, target_pid, msg, opts, attempt + 1}, alarm_id}
         Logger.warn "Alarm scheduled for redelivery"
-      _                       -> 
+      _other                  -> 
         state.settings.persister.delete_alarm alarm_id
         :ok
     end

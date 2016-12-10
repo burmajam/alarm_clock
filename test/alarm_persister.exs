@@ -1,6 +1,7 @@
 defmodule AlarmPersister do
   @behaviour AlarmClock.Persister
-  use GenServer
+  use        GenServer
+  require    Logger
 
   def start_link,
     do: Agent.start_link(fn -> %{} end, name: __MODULE__)
@@ -26,7 +27,7 @@ defmodule AlarmPersister do
 
   def delete_alarm(alarm_id) do
     if Agent.get_and_update(__MODULE__, &Map.pop(&1, alarm_id)),
-      do: :ok,
+      do:   Logger.debug("Alarm #{inspect alarm_id} deleted"),
       else: {:error, :key_not_found, alarm_id}
   end
 end

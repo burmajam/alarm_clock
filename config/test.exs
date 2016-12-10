@@ -4,7 +4,6 @@ config :alarm_clock, :settings,
   name:        MyReminder,
   persister:   AlarmPersister,
   timeout:     5_000,
-  retries:     3,
   retry_delay: 10_000
 
 config :logger, :console,

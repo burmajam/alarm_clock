@@ -16,11 +16,11 @@ defmodule AlarmClock do
   def init(opts) do 
     settings = %{
       timeout:     Keyword.get(opts, :timeout,                         5_000),
-      retries:     Keyword.get(opts, :retries,                             3),
+      retries:     Keyword.get(opts, :retries,                      :infinit),
       retry_delay: Keyword.get(opts, :retry_delay,                    10_000),
       persister:   Keyword.get(opts, :persister,    AlarmClock.DetsPersister)
     }
-    Logger.info "Started AlarmClock [name: #{inspect opts[:name]}] with settings: #{inspect settings}"
+    Logger.info "Started AlarmClock [name: #{inspect opts[:name]}] with default settings: #{inspect settings}"
     load_saved_alarms settings.persister
     {:ok, %{settings: settings}}
   end

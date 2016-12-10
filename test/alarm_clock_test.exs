@@ -29,8 +29,8 @@ defmodule AlarmClockTest do
 
   test "Timeout for alarm can be set" do
     Logger.info "Timeout for alarm can be set"
-    {:ok, alarm_clock} = AlarmClock.start_link retry_delay: 1_000, persister: AlarmPersister
-    :ok = AlarmClock.set_alarm_call alarm_clock, self, :msg, in: 50, retries: 2, timeout: 500
+    {:ok, alarm_clock} = AlarmClock.start_link persister: AlarmPersister
+    :ok = AlarmClock.set_alarm_call alarm_clock, self, :msg, in: 50, retries: 2, retry_delay: 1_000, timeout: 500
     refute_receive :msg, 4000
     :timer.sleep 10
   end

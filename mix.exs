@@ -20,7 +20,7 @@ defmodule AlarmClock.Mixfile do
 
   defp deps do
     [
-      {:calendar, "~> 0.16.1"},
+      {:calendar, "~> 0.14"},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end

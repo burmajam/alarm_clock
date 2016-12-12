@@ -43,20 +43,20 @@ defmodule AlarmClock do
     Logger.debug "Setting alarm for #{inspect target_pid} in #{inspect ms} miliseconds with message: #{inspect msg}"
     message = {:alarm, call_type, target_pid, msg, opts, 1}
     {:ok, alarm_id} = state.settings.persister.save_alarm message
-    case :timer.send_after ms, {message, alarm_id} do
+    case :timer.send_after ms, {message, alarm_id, :on_time} do
       {:ok, _} -> {:reply, :ok,   state}
       error    -> {:reply, error, state}
     end
   end
 
-  def handle_info({{:alarm, :call, target_pid, msg, opts, attempt}, alarm_id}, state) do
+  def handle_info({{:alarm, :call, target_pid, msg, opts, attempt}, alarm_id, on_time?}, state) do
     settings = get_settings opts, state.settings
-    case deliver(target_pid, msg, settings, attempt) do
+    case deliver(target_pid, msg, settings, attempt, on_time?) do
       {:error, {:timeout, _}} -> 
-        :timer.send_after settings.retry_delay, {{:alarm, :call, target_pid, msg, opts, attempt + 1}, alarm_id}
+        :timer.send_after settings.retry_delay, {{:alarm, :call, target_pid, msg, opts, attempt + 1}, alarm_id, {:expired, :unknown}}
         Logger.warn "Alarm scheduled for redelivery"
       {:error, {:noproc, _}}  -> 
-        :timer.send_after settings.retry_delay, {{:alarm, :call, target_pid, msg, opts, attempt + 1}, alarm_id}
+        :timer.send_after settings.retry_delay, {{:alarm, :call, target_pid, msg, opts, attempt + 1}, alarm_id, {:expired, :unknown}}
         Logger.warn "Alarm scheduled for redelivery"
       _other                  -> 
         state.settings.persister.delete_alarm alarm_id
@@ -78,10 +78,10 @@ defmodule AlarmClock do
     }
   end
 
-  defp deliver(target_pid, msg, %{retries: retries}=settings, attempt) when attempt <= retries do
+  defp deliver(target_pid, msg, %{retries: retries}=settings, attempt, on_time?) when attempt <= retries do
     try do
       Logger.debug "Calling #{inspect target_pid} with #{inspect msg}"
-      case GenServer.call(target_pid, msg, settings.timeout) do
+      case GenServer.call(target_pid, {:alarm, on_time?, msg}, settings.timeout) do
         :ok   -> 
           Logger.debug "Everything looks ok"
         other -> 
@@ -94,7 +94,7 @@ defmodule AlarmClock do
         {:error, reason}
     end
   end
-  defp deliver(target_pid, msg, _settings, attempt) do
+  defp deliver(target_pid, msg, _settings, attempt, _) do
     Logger.error "Delivery of message #{inspect msg} to #{inspect target_pid} didn't succeed in #{attempt - 1} attempts"
   end
 
@@ -109,9 +109,9 @@ defmodule AlarmClock do
     case Keyword.fetch!(opts, :in) do
       {:warn, :expired, ms_ago} -> 
         Logger.warn "Message expired #{inspect ms_ago} mseconds ago! Delivering it now!"
-        send self, {alarm, alarm_id}
+        send self, {alarm, alarm_id, {:expired, ms_ago}}
       ms -> 
-        :timer.send_after ms, {alarm, alarm_id}
+        :timer.send_after ms, {alarm, alarm_id, :on_time}
     end
   end
 

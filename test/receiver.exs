@@ -10,7 +10,7 @@ defmodule Receiver do
     {:ok, parent_pid}
   end
 
-  def handle_call(msg, _from, parent_pid) do
+  def handle_call({:alarm, _, msg}, _from, parent_pid) do
     send parent_pid, msg
     {:reply, :ok, parent_pid}
   end

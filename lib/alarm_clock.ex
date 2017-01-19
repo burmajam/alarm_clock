@@ -27,7 +27,7 @@ defmodule AlarmClock do
 
   def handle_call({:set_alarm, {call_type, target_pid, msg, opts}}, _from, state) do
     at = Keyword.get opts, :at
-    {:ok, ms} = if at do
+    response = if at do
       case Calendar.DateTime.diff(Calendar.DateTime.now_utc, at) do
         {:ok, seconds, useconds, :before} ->
           ms = abs (seconds * 1000) + round(useconds / 1000)
@@ -40,12 +40,17 @@ defmodule AlarmClock do
     else
       Keyword.fetch opts, :in
     end
-    Logger.debug "Setting alarm for #{inspect target_pid} in #{inspect ms} miliseconds with message: #{inspect msg}"
-    message = {:alarm, call_type, target_pid, msg, opts, 1}
-    {:ok, alarm_id} = state.settings.persister.save_alarm message
-    case :timer.send_after ms, {message, alarm_id, :on_time} do
-      {:ok, _} -> {:reply, :ok,   state}
-      error    -> {:reply, error, state}
+    case response do
+      {:ok, ms} ->
+        Logger.debug "Setting alarm for #{inspect target_pid} in #{inspect ms} miliseconds with message: #{inspect msg}"
+        message = {:alarm, call_type, target_pid, msg, opts, 1}
+        {:ok, alarm_id} = state.settings.persister.save_alarm message
+        case :timer.send_after ms, {message, alarm_id, :on_time} do
+          {:ok, _} -> {:reply, :ok,   state}
+          error    -> {:reply, error, state}
+        end
+      error -> 
+        {:reply, error, state}
     end
   end
 

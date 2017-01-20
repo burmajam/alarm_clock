@@ -2,18 +2,19 @@ defmodule AlarmClock.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :alarm_clock,
-     version: "0.0.4",
-     elixir: "~> 1.3",
-     package: package,
-     description: description,
-     build_embedded: Mix.env == :prod,
+    [app:             :alarm_clock,
+     version:         "0.1.0",
+     elixir:          "~> 1.3 or ~> 1.4",
+     package:         package(),
+     description:     description(),
+     build_embedded:  Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps]
+     deps: deps()]
   end
 
   def application do
     [
+      mod:          {AlarmClock.App, []},
       applications: [:logger, :calendar]
     ]
   end

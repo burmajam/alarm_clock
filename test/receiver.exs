@@ -6,7 +6,7 @@ defmodule Receiver do
     do: GenServer.start_link __MODULE__, parent_pid, opts
 
   def init(parent_pid) do
-    Logger.debug "Starting Receiver #{inspect self}"
+    Logger.debug "Starting Receiver #{inspect self()}"
     {:ok, parent_pid}
   end
 

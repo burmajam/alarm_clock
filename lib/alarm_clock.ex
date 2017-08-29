@@ -119,7 +119,7 @@ defmodule AlarmClock do
     case Keyword.fetch!(opts, :in) do
       {:warn, :expired, ms_ago} -> 
         Logger.warn "Message expired #{inspect ms_ago} mseconds ago! Delivering it now!"
-        send self, {alarm, alarm_id, {:expired, ms_ago}}
+        send self(), {alarm, alarm_id, {:expired, ms_ago}}
       ms -> 
         :timer.send_after ms, @facade_name, {alarm, alarm_id, :on_time}
     end

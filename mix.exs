@@ -3,8 +3,8 @@ defmodule AlarmClock.Mixfile do
 
   def project do
     [app:             :alarm_clock,
-     version:         "0.1.0",
-     elixir:          "~> 1.3 or ~> 1.4",
+     version:         "0.1.1",
+     elixir:          "~> 1.3",
      package:         package(),
      description:     description(),
      build_embedded:  Mix.env == :prod,
